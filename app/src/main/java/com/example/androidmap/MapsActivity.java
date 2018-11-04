@@ -6,7 +6,9 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
+import android.widget.CompoundButton;
 import android.widget.EditText;
+import android.widget.Switch;
 
 import com.android.volley.Request;
 import com.android.volley.Response;
@@ -36,6 +38,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private GoogleMap mMap;
     private PlaceAutocompleteFragment placeAutoComplete;
     private String API_KEY = "AIzaSyCYjArGK8qyUKkNEICYzs_P4ZH4Xc2k0-Q";
+    private Switch switchButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -52,7 +55,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 Log.d("Maps", "Place selected: " + place.getName());
                 LatLng selectedLL = place.getLatLng();
                 mMap.clear();
-                mMap.addMarker(new MarkerOptions().position(selectedLL).title(selectedLL.toString()));
+                mMap.addMarker(new MarkerOptions().position(selectedLL).title(place.getAddress().toString()));
                 // The zooming animation learned from this tutorial:
                 // https://developers.google.com/maps/documentation/android-sdk/views
                 CameraPosition cameraPosition = new CameraPosition.Builder()
@@ -67,6 +70,21 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             @Override
             public void onError(Status status) {
                 Log.d("Maps", "An error occurred: " + status);
+            }
+        });
+
+        // The switch button usage learned from this example:
+        // https://www.viralandroid.com/2015/11/android-switch-button-example.html
+        switchButton = (Switch) findViewById(R.id.switch1);
+        switchButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (isChecked) {
+                    mMap.setMapType(GoogleMap.MAP_TYPE_HYBRID);
+                }
+                else {
+                    mMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
+                }
             }
         });
 
@@ -91,10 +109,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
-
+        mMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
         // Add a marker in Sydney and move the camera
         LatLng sydney = new LatLng(-34, 151);
-
         mMap.addMarker(new MarkerOptions().position(sydney).title("Marker in Sydney"));
         mMap.moveCamera(CameraUpdateFactory.newLatLng(sydney));
         // Zoom in, animating the camera.
@@ -108,64 +125,66 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
      * Search geocoding for the address entered by the user
      *
      */
-    public void onSearch(View view){
-        // Minimize the keyboard first, learned from:
-        // https://stackoverflow.com/questions/1109022/close-hide-the-android-soft-keyboard
-        InputMethodManager imm = (InputMethodManager) this.getSystemService(Activity.INPUT_METHOD_SERVICE);
-        imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
-
-        // The user input and button action learned from this tutorial:
-        // https://developer.android.com/training/basics/firstapp/starting-activity
-        EditText editText = (EditText) findViewById(R.id.editText);
-        String address = editText.getText().toString();
-        Log.d("user input", address);
-
-        // Use Volley to make geocoding API request, learned from:
-        // https://developer.android.com/training/volley/simple
-        // Instantiate the RequestQueue.
-        RequestQueue queue = Volley.newRequestQueue(this);
-        String requestURL = "https://maps.googleapis.com/maps/api/geocode/json?address=" + address.replace(' ', '+') + "&key=" + API_KEY;
-        Log.d("url: ", requestURL);
-        // Request a string response from the provided URL.
-        StringRequest stringRequest = new StringRequest(Request.Method.GET, requestURL,
-                new Response.Listener<String>() {
-                    @Override
-                    public void onResponse(String response) {
-                        try {
-                            JSONObject reader = new JSONObject(response);
-                            Log.d("Response is: ", reader.get("status").toString());
-                            double lat = (double) reader.getJSONArray("results").getJSONObject(0)
-                                    .getJSONObject("geometry")
-                                    .getJSONObject("location")
-                                    .get("lat");
-                            double lng = (double) reader.getJSONArray("results").getJSONObject(0)
-                                    .getJSONObject("geometry")
-                                    .getJSONObject("location")
-                                    .get("lng");
-                            LatLng selectedLL = new LatLng(lat, lng);
-                            mMap.clear();
-                            mMap.addMarker(new MarkerOptions().position(selectedLL).title(selectedLL.toString()));
-                            // The zooming animation learned from this tutorial:
-                            // https://developers.google.com/maps/documentation/android-sdk/views
-                            CameraPosition cameraPosition = new CameraPosition.Builder()
-                                    .target(selectedLL)      // Sets the center of the map to selected place
-                                    .zoom(17)                   // Sets the zoom
-                                    .bearing(0)                // Sets the orientation of the camera to east
-                                    .tilt(30)                   // Sets the tilt of the camera to 30 degrees
-                                    .build();                   // Creates a CameraPosition from the builder
-                            mMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
-                        } catch (JSONException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                }, new Response.ErrorListener() {
-                @Override
-                public void onErrorResponse(VolleyError error) {
-                    Log.d("Error: ", "VolleyError");
-                }
-            });
-
-        // Add the request to the RequestQueue.
-        queue.add(stringRequest);
-    }
+//    public void onSearch(View view){
+//        // Minimize the keyboard first, learned from:
+//        // https://stackoverflow.com/questions/1109022/close-hide-the-android-soft-keyboard
+//        InputMethodManager imm = (InputMethodManager) this.getSystemService(Activity.INPUT_METHOD_SERVICE);
+//        imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
+//
+//        // The user input and button action learned from this tutorial:
+//        // https://developer.android.com/training/basics/firstapp/starting-activity
+//        EditText editText = (EditText) findViewById(R.id.editText);
+//        String address = editText.getText().toString();
+//        Log.d("user input", address);
+//
+//        // Use Volley to make geocoding API request, learned from:
+//        // https://developer.android.com/training/volley/simple
+//        // Instantiate the RequestQueue.
+//        RequestQueue queue = Volley.newRequestQueue(this);
+//        String requestURL = "https://maps.googleapis.com/maps/api/geocode/json?address=" + address.replace(' ', '+') + "&key=" + API_KEY;
+//        Log.d("url: ", requestURL);
+//        // Request a string response from the provided URL.
+//        StringRequest stringRequest = new StringRequest(Request.Method.GET, requestURL,
+//                new Response.Listener<String>() {
+//                    @Override
+//                    public void onResponse(String response) {
+//                        try {
+//                            JSONObject reader = new JSONObject(response);
+//                            Log.d("Response is: ", reader.get("status").toString());
+//                            double lat = (double) reader.getJSONArray("results").getJSONObject(0)
+//                                    .getJSONObject("geometry")
+//                                    .getJSONObject("location")
+//                                    .get("lat");
+//                            double lng = (double) reader.getJSONArray("results").getJSONObject(0)
+//                                    .getJSONObject("geometry")
+//                                    .getJSONObject("location")
+//                                    .get("lng");
+//                            String county = (String) reader.getJSONArray("results").getJSONObject(0)
+//                                    .get("formatted_address");
+//                            LatLng selectedLL = new LatLng(lat, lng);
+//                            mMap.clear();
+//                            mMap.addMarker(new MarkerOptions().position(selectedLL).title(county));
+//                            // The zooming animation learned from this tutorial:
+//                            // https://developers.google.com/maps/documentation/android-sdk/views
+//                            CameraPosition cameraPosition = new CameraPosition.Builder()
+//                                    .target(selectedLL)      // Sets the center of the map to selected place
+//                                    .zoom(17)                   // Sets the zoom
+//                                    .bearing(0)                // Sets the orientation of the camera to east
+//                                    .tilt(30)                   // Sets the tilt of the camera to 30 degrees
+//                                    .build();                   // Creates a CameraPosition from the builder
+//                            mMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
+//                        } catch (JSONException e) {
+//                            e.printStackTrace();
+//                        }
+//                    }
+//                }, new Response.ErrorListener() {
+//                @Override
+//                public void onErrorResponse(VolleyError error) {
+//                    Log.d("Error: ", "VolleyError");
+//                }
+//            });
+//
+//        // Add the request to the RequestQueue.
+//        queue.add(stringRequest);
+//    }
 }
