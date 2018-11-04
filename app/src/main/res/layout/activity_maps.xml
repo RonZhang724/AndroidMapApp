@@ -58,9 +58,13 @@
             android:id="@+id/switch1"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:layout_alignParentBottom="true"
             android:checked="false"
             android:showText="false"
             android:text="Satellite"
+            android:textAllCaps="false"
+            android:textColor="@android:color/black"
             tools:checked="false" />
 
     </RelativeLayout>

@@ -1,6 +1,7 @@
 package com.example.androidmap;
 
 import android.app.Activity;
+import android.graphics.Color;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
 import android.util.Log;
