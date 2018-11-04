@@ -1,9 +1,17 @@
 package com.example.androidmap;
 
+import android.app.Activity;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.EditText;
 
+import com.android.volley.Request;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.StringRequest;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -17,10 +25,17 @@ import com.google.android.gms.location.places.Place;
 import com.google.android.gms.location.places.ui.PlaceAutocompleteFragment;
 import com.google.android.gms.location.places.ui.PlaceSelectionListener;
 
+import com.android.volley.RequestQueue;
+import com.android.volley.toolbox.Volley;
+
+import org.json.JSONException;
+import org.json.JSONObject;
+
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
 
     private GoogleMap mMap;
-    PlaceAutocompleteFragment placeAutoComplete;
+    private PlaceAutocompleteFragment placeAutoComplete;
+    private String API_KEY = "AIzaSyCYjArGK8qyUKkNEICYzs_P4ZH4Xc2k0-Q";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -28,18 +43,18 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         // Retrieve the content view that renders the map.
         setContentView(R.layout.activity_maps);
 
-
-        // add the autocomplete places
+        // The auto-complete search bar learned from this tutorial:
+        // https://stackoverflow.com/questions/45107806/autocomplete-search-bar-in-google-maps
         placeAutoComplete = (PlaceAutocompleteFragment) getFragmentManager().findFragmentById(R.id.place_autocomplete);
         placeAutoComplete.setOnPlaceSelectedListener(new PlaceSelectionListener() {
             @Override
             public void onPlaceSelected(Place place) {
-
                 Log.d("Maps", "Place selected: " + place.getName());
                 LatLng selectedLL = place.getLatLng();
                 mMap.clear();
                 mMap.addMarker(new MarkerOptions().position(selectedLL).title(selectedLL.toString()));
-
+                // The zooming animation learned from this tutorial:
+                // https://developers.google.com/maps/documentation/android-sdk/views
                 CameraPosition cameraPosition = new CameraPosition.Builder()
                         .target(selectedLL)      // Sets the center of the map to selected place
                         .zoom(17)                   // Sets the zoom
@@ -47,7 +62,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         .tilt(30)                   // Sets the tilt of the camera to 30 degrees
                         .build();                   // Creates a CameraPosition from the builder
                 mMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
-                //mMap.moveCamera(CameraUpdateFactory.newLatLng(selectedLL));
             }
 
             @Override
@@ -55,6 +69,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 Log.d("Maps", "An error occurred: " + status);
             }
         });
+
 
 
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
@@ -79,6 +94,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         // Add a marker in Sydney and move the camera
         LatLng sydney = new LatLng(-34, 151);
+
         mMap.addMarker(new MarkerOptions().position(sydney).title("Marker in Sydney"));
         mMap.moveCamera(CameraUpdateFactory.newLatLng(sydney));
         // Zoom in, animating the camera.
@@ -86,5 +102,70 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         // Zoom out to zoom level 10, animating with a duration of 2 seconds.
         mMap.animateCamera(CameraUpdateFactory.zoomTo(10), 2000, null);
+    }
+
+    /**
+     * Search geocoding for the address entered by the user
+     *
+     */
+    public void onSearch(View view){
+        // Minimize the keyboard first, learned from:
+        // https://stackoverflow.com/questions/1109022/close-hide-the-android-soft-keyboard
+        InputMethodManager imm = (InputMethodManager) this.getSystemService(Activity.INPUT_METHOD_SERVICE);
+        imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
+
+        // The user input and button action learned from this tutorial:
+        // https://developer.android.com/training/basics/firstapp/starting-activity
+        EditText editText = (EditText) findViewById(R.id.editText);
+        String address = editText.getText().toString();
+        Log.d("user input", address);
+
+        // Use Volley to make geocoding API request, learned from:
+        // https://developer.android.com/training/volley/simple
+        // Instantiate the RequestQueue.
+        RequestQueue queue = Volley.newRequestQueue(this);
+        String requestURL = "https://maps.googleapis.com/maps/api/geocode/json?address=" + address.replace(' ', '+') + "&key=" + API_KEY;
+        Log.d("url: ", requestURL);
+        // Request a string response from the provided URL.
+        StringRequest stringRequest = new StringRequest(Request.Method.GET, requestURL,
+                new Response.Listener<String>() {
+                    @Override
+                    public void onResponse(String response) {
+                        try {
+                            JSONObject reader = new JSONObject(response);
+                            Log.d("Response is: ", reader.get("status").toString());
+                            double lat = (double) reader.getJSONArray("results").getJSONObject(0)
+                                    .getJSONObject("geometry")
+                                    .getJSONObject("location")
+                                    .get("lat");
+                            double lng = (double) reader.getJSONArray("results").getJSONObject(0)
+                                    .getJSONObject("geometry")
+                                    .getJSONObject("location")
+                                    .get("lng");
+                            LatLng selectedLL = new LatLng(lat, lng);
+                            mMap.clear();
+                            mMap.addMarker(new MarkerOptions().position(selectedLL).title(selectedLL.toString()));
+                            // The zooming animation learned from this tutorial:
+                            // https://developers.google.com/maps/documentation/android-sdk/views
+                            CameraPosition cameraPosition = new CameraPosition.Builder()
+                                    .target(selectedLL)      // Sets the center of the map to selected place
+                                    .zoom(17)                   // Sets the zoom
+                                    .bearing(0)                // Sets the orientation of the camera to east
+                                    .tilt(30)                   // Sets the tilt of the camera to 30 degrees
+                                    .build();                   // Creates a CameraPosition from the builder
+                            mMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }, new Response.ErrorListener() {
+                @Override
+                public void onErrorResponse(VolleyError error) {
+                    Log.d("Error: ", "VolleyError");
+                }
+            });
+
+        // Add the request to the RequestQueue.
+        queue.add(stringRequest);
     }
 }
